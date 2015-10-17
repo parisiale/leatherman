@@ -33,6 +33,27 @@ namespace leatherman { namespace logging {
     static bool g_colorize = false;
     static bool g_error_logged = false;
 
+    template <typename StreamT>
+    static void format_record(boost::log::record_view const& rec, StreamT& strm)
+    {
+        auto level = boost::log::extract<log_level>("Severity", rec);
+        auto line_num = boost::log::extract<int>("LineNum", rec);
+        auto name_space = boost::log::extract<string>("Namespace", rec);
+        auto timestamp = boost::log::extract<boost::posix_time::ptime>("TimeStamp", rec);
+        auto message = rec[expr::smessage];
+
+        strm << boost::gregorian::to_iso_extended_string(timestamp->date());
+        strm << " " << boost::posix_time::to_simple_string(timestamp->time_of_day());
+        strm << " " << left << setfill(' ') << setw(5) << level << " " << *name_space;
+        if (line_num) {
+            strm << ":" << *line_num;
+        }
+        strm << " - ";
+        colorize(strm, *level);
+        strm << *message;
+        colorize(strm);
+    }
+
     class color_writer : public sinks::basic_sink_backend<sinks::synchronized_feeding>
     {
      public:
@@ -46,34 +67,35 @@ namespace leatherman { namespace logging {
 
     void color_writer::consume(boost::log::record_view const& rec)
     {
-        auto level = boost::log::extract<log_level>("Severity", rec);
-        auto line_num = boost::log::extract<int>("LineNum", rec);
-        auto name_space = boost::log::extract<string>("Namespace", rec);
-        auto timestamp = boost::log::extract<boost::posix_time::ptime>("TimeStamp", rec);
-        auto message = rec[expr::smessage];
-
-        _dst << boost::gregorian::to_iso_extended_string(timestamp->date());
-        _dst << " " << boost::posix_time::to_simple_string(timestamp->time_of_day());
-        _dst << " " << left << setfill(' ') << setw(5) << level << " " << *name_space;
-        if (line_num) {
-            _dst << ":" << *line_num;
-        }
-        _dst << " - ";
-        colorize(_dst, *level);
-        _dst << *message;
-        colorize(_dst);
+        format_record<ostream>(rec, _dst);
         _dst << endl;
+    }
+
+    void puppetlabs_native_formatter(boost::log::record_view const& rec,
+                                     boost::log::formatting_ostream& strm)
+    {
+        format_record<boost::log::formatting_ostream>(rec, strm);
+    }
+
+    void setup_common_logging_config()
+    {
+        // Acquire the core singleton instance
+        auto core = boost::log::core::get();
+
+        // Remove existing sinks before adding a new one
+        core->remove_all_sinks();
+
+        // Initialize common attributes (line ID counter, etc)
+        boost::log::add_common_attributes();
+
+        // Default to the warning level
+        set_level(log_level::warning);
     }
 
     void setup_logging(ostream &dst, string locale)
     {
-        // Remove existing sinks before adding a new one
-        auto core = boost::log::core::get();
-        core->remove_all_sinks();
-
         using sink_t = sinks::synchronous_sink<color_writer>;
         boost::shared_ptr<sink_t> sink(new sink_t(&dst));
-        core->add_sink(sink);
 
 #if (!defined(__sun) && !defined(_AIX)) || !defined(__GNUC__)
         // Imbue the logging sink with the requested locale.
@@ -81,10 +103,10 @@ namespace leatherman { namespace logging {
         dst.imbue(leatherman::locale::get_locale(locale));
 #endif
 
-        boost::log::add_common_attributes();
+        auto core = boost::log::core::get();
+        core->add_sink(sink);
 
-        // Default to the warning level
-        set_level(log_level::warning);
+        setup_common_logging_config();
 
         // Set whether or not to use colorization depending if the destination is a tty
         g_colorize = color_supported(dst);

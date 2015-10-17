@@ -145,6 +145,24 @@ namespace leatherman { namespace logging {
      */
     std::ostream& operator<<(std::ostream& strm, log_level level);
 
+
+
+
+
+
+    void puppetlabs_native_formatter(boost::log::record_view const& rec,
+                                     boost::log::formatting_ostream& strm);
+
+
+
+    void setup_common_logging_config();
+
+
+
+
+
+
+
     /**
      * Sets up logging for the given stream.
      * The logging level is set to warning by default.
@@ -152,6 +170,16 @@ namespace leatherman { namespace logging {
      * @param locale The locale identifier to use for logging.
      */
     void setup_logging(std::ostream &dst, std::string locale = "");
+
+
+
+
+
+    void setup_event_logger(std::string locale = "");
+
+
+
+
 
     /**
      * Sets the current log level.
@@ -263,6 +291,14 @@ namespace leatherman { namespace logging {
      * @param level The log level to colorize for. Defaults to none, which resets colorization.
      */
     void colorize(std::ostream &dst, log_level level = log_level::none);
+
+    /**
+     * Starts colorizing the formatting output stream for the given log level.
+     * This is a no-op on platforms that don't natively support terminal colors.
+     * @param strm The formatting output stream stream to colorize.
+     * @param level The log level to colorize for. Defaults to none, which resets colorization.
+     */
+    void colorize(boost::log::formatting_ostream& strm, log_level level = log_level::none);
 
     /**
      * Returns whether terminal colors are supported.
