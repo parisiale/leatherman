@@ -306,6 +306,49 @@ namespace leatherman { namespace execution {
         uint32_t timeout = 0,
         lth_util::option_set<execution_options> const& options = { execution_options::trim_output, execution_options::merge_environment, execution_options::redirect_stderr_to_null });
 
+
+
+
+
+
+
+    result execute(
+        std::string const& file,
+        std::vector<std::string> const& arguments,
+        std::string const& input,
+        std::map<std::string, std::string> const& environment,
+        std::function<void(size_t)> pid_callback = nullptr,
+        uint32_t timeout = 0,
+        lth_util::option_set<execution_options> const& options = { execution_options::trim_output, execution_options::merge_environment, execution_options::redirect_stderr_to_null });
+
+
+
+
+
+
+
+
+
+    result execute(
+        std::string const& file,
+        std::vector<std::string> const& arguments,
+        std::string const& input,
+        std::string const& out_file,
+        std::string const& err_file = "",
+        std::map<std::string, std::string> const& environment = {},
+        std::function<void(size_t)> pid_callback = nullptr,
+        uint32_t timeout = 0,
+        lth_util::option_set<execution_options> const& options = { execution_options::trim_output, execution_options::merge_environment });
+
+
+
+
+
+
+
+
+
+
     /**
      * Executes the given program and returns each line of output.
      * @param file The name or path of the program to execute.
@@ -364,7 +407,7 @@ namespace leatherman { namespace execution {
      * Processes stdout and stderror streams of a child process.
      * @param trim True if output should be trimmed or false if not.
      * @param stdout_callback The callback to use when a line is read for stdout.
-     * @param stderr_callback The callback to use when a line is read for stdout.
+     * @param stderr_callback The callback to use when a line is read for stderr.
      * @param read_streams The callback that is called to read stdout and stderr streams.
      * @return Returns a tuple of stdout and stderr output.  If stdout_callback or stderr_callback is given, it will return empty strings.
      */
