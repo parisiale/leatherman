@@ -12,8 +12,17 @@
  * See Boost.Log's documentation.
  */
 #include <leatherman/locale/locale.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/sinks/basic_sink_backend.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+
+#pragma GCC diagnostic pop
+
 #include <cstdio>
 #include <functional>
 
@@ -145,6 +154,15 @@ namespace leatherman { namespace logging {
      */
     std::ostream& operator<<(std::ostream& strm, log_level level);
 
+    class color_writer : public boost::log::sinks::basic_sink_backend<boost::log::sinks::synchronized_feeding>
+    {
+     public:
+        color_writer(std::ostream *dst);
+        void consume(boost::log::record_view const& rec);
+     private:
+        std::ostream &_dst;
+    };
+
     /**
      * Sets up logging for the given stream.
      * The logging level is set to warning by default.
@@ -153,7 +171,10 @@ namespace leatherman { namespace logging {
      * @param domain The catalog domain to use for i18n via gettext.
      * @param use_locale Whether to use locales in logging setup. If locales are disabled this parameter is ignored.
      */
-    void setup_logging(std::ostream &dst, std::string locale = "", std::string domain = PROJECT_NAME, bool use_locale = true);
+    boost::shared_ptr<boost::log::sinks::synchronous_sink<color_writer>>
+    setup_logging(std::ostream &dst, std::string locale = "",
+                  std::string domain = PROJECT_NAME,
+                  bool use_locale = true);
 
     /**
      * Sets the current log level.

@@ -14,8 +14,6 @@ using leatherman::locale::_;
 #include <boost/log/attributes/scoped_attribute.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
-#include <boost/log/sinks/sync_frontend.hpp>
-#include <boost/log/sinks/basic_sink_backend.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/algorithm/string.hpp>
@@ -37,15 +35,6 @@ namespace leatherman { namespace logging {
     static bool g_error_logged = false;
 
     namespace lth_locale = leatherman::locale;
-
-    class color_writer : public sinks::basic_sink_backend<sinks::synchronized_feeding>
-    {
-     public:
-        color_writer(ostream *dst);
-        void consume(boost::log::record_view const& rec);
-     private:
-        ostream &_dst;
-    };
 
     color_writer::color_writer(ostream *dst) : _dst(*dst) {}
 
@@ -70,7 +59,8 @@ namespace leatherman { namespace logging {
         _dst << endl;
     }
 
-    void setup_logging(ostream &dst, string locale, string domain, bool use_locale)
+    boost::shared_ptr<sinks::synchronous_sink<color_writer>>
+    setup_logging(ostream &dst, string locale, string domain, bool use_locale)
     {
         // Remove existing sinks before adding a new one
         auto core = boost::log::core::get();
@@ -101,6 +91,8 @@ namespace leatherman { namespace logging {
 
         // Set whether or not to use colorization depending if the destination is a tty
         g_colorize = color_supported(dst);
+
+        return sink;
     }
 
     // This version exists for binary compatibility only.
